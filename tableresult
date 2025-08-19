@@ -140,5 +140,88 @@ print(f"PDF generado con tabla: {pdf_path}")
 doc.build([table])
 
 print(f"PDF generado con tabla: {pdf_path}")
-   
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#codigo con todas las modificaciones aplicadas:
+
+import pandas as pd
+from pandasql import sqldf
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+
+# Parámetros configurables
+archivo = r'C:\Kroner\EXCEL\EDOIM Y APERT.xlsm'
+hoja = 'EDOIM'
+usecols = ['Unnamed: 4','Unnamed: 6', 'Unnamed: 7', 'Unnamed: 8','Unnamed: 9', 'Unnamed: 15', 'Unnamed: 16']
+
+# 1. Leer la hoja EDOIM y columnas deseadas
+df = pd.read_excel(
+    archivo, 
+    sheet_name=hoja, 
+    usecols=usecols,
+    skiprows=[1]
+    )
+print("Columnas cargadas:", df.columns.tolist())
+
+# 2. Filtrar datos con pandasql
+query = """
+SELECT 
+`Unnamed: 4` AS Fecha,
+`Unnamed: 6` AS Capital,
+`Unnamed: 7` AS Interés,
+`Unnamed: 8` AS FECI,
+`Unnamed: 9` AS Seguros,
+`Unnamed: 15` AS TotalPagado,
+`Unnamed: 16` AS SaldoActual
+FROM df
+LIMIT 10
+"""
+resultado = sqldf(query, globals())
+
+# 3. Generar PDF con estilo de tabla (usando ReportLab)
+nombre_pdf = input("Ingrese el nombre para guardar el PDF: ").strip()
+if not nombre_pdf:
+    nombre_pdf = "reporte_tabla"
+if not nombre_pdf.lower().endswith('.pdf'):
+    nombre_pdf += '.pdf'
+
+pdf_path = nombre_pdf
+doc = SimpleDocTemplate(pdf_path, pagesize=letter)
+
+# Preparar datos para la tabla: encabezado + filas
+data = [resultado.columns.tolist()] + resultado.values.tolist()
+
+# Calcular el ancho disponible en la página
+page_width, page_height = letter
+available_width = page_width - 2 * inch  # Márgenes de 1 pulgada a la izquierda y derecha
+
+# Establecer el ancho de cada columna para que se ajusten al ancho disponible
+col_width = available_width / len(data[0])  # Número de columnas
+col_widths = [col_width] * len(data[0])
+
+# Estilo de la tabla
+style = TableStyle([
+    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+    ('FONTSIZE', (0, 0), (-1, 0), 8),
+    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+])
+
+# Crear la tabla y generar el PDF
+table = Table(data, colWidths=col_widths)
+table.setStyle(style)
+
+doc.build([table])
+
+print(f"PDF generado con tabla: {pdf_path}")
+
+
+doc.build([table])
+
+print(f"PDF generado con tabla: {pdf_path}")
 
