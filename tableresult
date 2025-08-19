@@ -43,6 +43,61 @@ style = TableStyle([
 
 # Crear la tabla y generar el PDF
 table = Table(data)
+
+*****************************************************************************************************************************
+
+iniciar desde la fila 3
+
+import pandas as pd
+from pandasql import sqldf
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from reportlab.lib import colors
+
+# Parámetros configurables
+archivo = 'archivo.xlsx'
+hoja = 'EDOIM'
+usecols = ['Unnamed: 0', 'Unnamed: 1', 'Unnamed: 2']
+
+# 1. Leer la hoja EDOIM, omitiendo las filas 0 y 1
+df = pd.read_excel(
+    archivo,
+    sheet_name=hoja,
+    usecols=usecols,
+    skiprows=[0, 1]
+)
+print("Columnas cargadas:", df.columns.tolist())
+
+# 2. Filtrar datos con pandasql
+query = """
+SELECT `Unnamed: 0` AS Col0,
+       `Unnamed: 1` AS Col1
+FROM df
+WHERE `Unnamed: 2` > 100
+"""
+resultado = sqldf(query, globals())
+
+# 3. Generar PDF con formato de tabla estilo Excel usando ReportLab
+nombre_pdf = "reporte_desde_fila3.pdf"
+doc = SimpleDocTemplate(nombre_pdf, pagesize=letter)
+
+data = [resultado.columns.tolist()] + resultado.values.tolist()
+style = TableStyle([
+    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    ('FONTSIZE', (0, 0), (-1, 0), 12),
+    ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.beige, colors.whitesmoke]),
+    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+])
+table = Table(data)
+table.setStyle(style)
+doc.build([table])
+
+print(f"PDF generado desde fila 3: {nombre_pdf}")
+
 table.setStyle(style)
 elements = [table]
 pdf.build(elements)
