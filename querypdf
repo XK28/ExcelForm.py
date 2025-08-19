@@ -34,3 +34,41 @@ for _, row in resultado.iterrows():
 # Guardar el PDF
 pdf.output("reporte.pdf")
 print("PDF generado: reporte.pdf")
+----------------------------------------------------------------------------------------------------------------------------------------------
+Test 2
+import pandas as pd
+from pandasql import sqldf
+from fpdf import FPDF
+
+# Parámetros configurables
+archivo = 'archivo.xlsx'
+hoja = 'NombreDeHoja'  # O usa un número, p. ej. hoja = 1 para la segunda hoja
+usecols = ['Columna1', 'Columna2', 'Columna3']
+
+# 1. Leer archivo Excel desde una hoja específica con columnas seleccionadas
+df = pd.read_excel(archivo, sheet_name=hoja, usecols=usecols)
+
+# 2. Ejecutar consulta SQL sobre el DataFrame
+pysqldf = lambda q: sqldf(q, locals())
+query = """
+SELECT Columna1, Columna2
+FROM df
+WHERE Columna3 > 100
+"""
+resultado = pysqldf(query)
+
+# 3. Generar PDF con los resultados
+pdf = FPDF()
+pdf.add_page()
+pdf.set_font("Arial", size=12)
+
+if not resultado.empty:
+    header = ' | '.join(resultado.columns)
+    pdf.cell(200, 10, txt=header, ln=True)
+
+for _, row in resultado.iterrows():
+    linea = ' | '.join(str(val) for val in row)
+    pdf.cell(200, 10, txt=linea, ln=True)
+
+pdf.output("reporte.pdf")
+print("PDF generado: reporte.pdf")
