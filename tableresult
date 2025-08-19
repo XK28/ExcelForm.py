@@ -53,53 +53,54 @@ from pandasql import sqldf
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from reportlab.lib import colors
+from reportlab.lib.units import inch
 
-# Parámetros configurables
 archivo = 'archivo.xlsx'
 hoja = 'EDOIM'
-usecols = ['Unnamed: 0', 'Unnamed: 1', 'Unnamed: 2']
 
-# 1. Leer la hoja EDOIM, omitiendo las filas 0 y 1
-df = pd.read_excel(
-    archivo,
-    sheet_name=hoja,
-    usecols=usecols,
-    skiprows=[0, 1]
+# --- Paso 1: leer toda la hoja sin usar usecols ni skiprows ---
+df_full = pd.read_excel(archivo, sheet_name=hoja)
+print("Columnas leídas:", df_full.columns.tolist())
+print("Primeras filas:", df_full.head())
+
+# --- Paso 2: seleccionar desde la fila 3 en adelante ---
+df = df_full.iloc[2:].reset_index(drop=True)
+
+# --- Paso 3: identificar índices de las columnas deseadas ---
+# Supongamos que usas las primeras tres columnas:
+df = df.iloc[:, [0, 1, 2]]
+df.columns = ['Col0', 'Col1', 'Col2']
+
+# --- Paso 4: filtrar con pandasql ---
+query = "SELECT Col0, Col1 FROM df WHERE Col2 > 100"
+resultado = sqldf(query, {'df': df})
+
+# --- Paso 5: pedir nombre del PDF ---
+nombre_pdf = input("Nombre del PDF (sin extensión): ").strip() or "reporte"
+if not nombre_pdf.lower().endswith('.pdf'):
+    nombre_pdf += '.pdf'
+
+# --- Paso 6: generar PDF con tabla estilo Excel ---
+doc = SimpleDocTemplate(
+    nombre_pdf,
+    pagesize=letter,
+    leftMargin=0.5*inch, rightMargin=0.5*inch,
+    topMargin=0.5*inch, bottomMargin=0.5*inch
 )
-print("Columnas cargadas:", df.columns.tolist())
 
-# 2. Filtrar datos con pandasql
-query = """
-SELECT `Unnamed: 0` AS Col0,
-       `Unnamed: 1` AS Col1
-FROM df
-WHERE `Unnamed: 2` > 100
-"""
-resultado = sqldf(query, globals())
+data = [resultado.columns.tolist()] + resultado.fillna("").values.tolist()
 
-# 3. Generar PDF con formato de tabla estilo Excel usando ReportLab
-nombre_pdf = "reporte_desde_fila3.pdf"
-doc = SimpleDocTemplate(nombre_pdf, pagesize=letter)
-
-data = [resultado.columns.tolist()] + resultado.values.tolist()
-style = TableStyle([
+table = Table(data, repeatRows=1)
+table.setStyle(TableStyle([
     ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-    ('FONTSIZE', (0, 0), (-1, 0), 12),
-    ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+    ('TEXTCOLOR',   (0, 0), (-1, 0), colors.whitesmoke),
+    ('FONTNAME',    (0, 0), (-1, 0), 'Helvetica-Bold'),
+    ('FONTSIZE',    (0, 0), (-1, 0), 11),
+    ('ALIGN',       (0, 0), (-1, -1), 'CENTER'),
+    ('BOTTOMPADDING', (0,0), (-1,0), 8),
     ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.beige, colors.whitesmoke]),
-    ('GRID', (0, 0), (-1, -1), 1, colors.black),
-])
-table = Table(data)
-table.setStyle(style)
+    ('GRID',        (0, 0), (-1, -1), 1, colors.black),
+]))
+
 doc.build([table])
-
-print(f"PDF generado desde fila 3: {nombre_pdf}")
-
-table.setStyle(style)
-elements = [table]
-pdf.build(elements)
-
-print(f"PDF generado con tabla: {pdf_path}")
+print(f"PDF generado correctamente: {nombre_pdf}")
