@@ -1,0 +1,37 @@
+
+Cómo integrarlo en tu código existente
+from pypdf import PdfReader, PdfWriter
+
+reader = PdfReader("mi_archivo.pdf")
+writer = PdfWriter()
+
+# ... otros pasos existentes (añadir páginas, modificar contenido, etc.) ...
+
+writer.write("output.pdf")
+
+Simplemente inserta el bucle de rotación justo antes de escribir:
+
+for page in reader.pages:
+    page.rotate(90)
+    writer.add_page(page)
+
+with open("output_horizontal.pdf", "wb") as f:
+    writer.write(f)
+
+--------------------------------------------------------------------
+EJM Integrado 
+
+from pypdf import PdfReader, PdfWriter
+
+reader = PdfReader("entrada.pdf")
+writer = PdfWriter()
+
+# Aquí podrías modificar páginas, texto, combinarlas, etc.
+
+# Ahora rotamos a apaisado
+for page in reader.pages:
+    page.rotate(90)
+    writer.add_page(page)
+
+with open("salida_horizontal.pdf", "wb") as f:
+    writer.write(f)
