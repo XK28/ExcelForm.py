@@ -1,4 +1,57 @@
+,...............................
+import openpyxl
+import os
+import win32com.client as win32  # Solo en Windows
 
+# -------------------------------
+# 1. Cargar archivos
+# -------------------------------
+excel_origen = "datos.xlsx"
+excel_template = "template.xlsx"
+excel_salida = "rellenado.xlsx"
+pdf_salida = "resultado.pdf"
+
+# Abrir el archivo origen
+wb_origen = openpyxl.load_workbook(excel_origen)
+ws_origen = wb_origen.active
+
+# Abrir el archivo template
+wb_template = openpyxl.load_workbook(excel_template)
+ws_template = wb_template.active
+
+# -------------------------------
+# 2. Pasar datos del origen al template
+#    (ejemplo: copiar nombres de la columna A al template)
+# -------------------------------
+fila_destino = 2  # Suponiendo que en el template la fila 1 son encabezados
+for fila in range(2, ws_origen.max_row + 1):
+    valor = ws_origen[f"A{fila}"].value
+    ws_template[f"A{fila_destino}"] = valor
+    fila_destino += 1
+
+# Guardar el template con los datos
+wb_template.save(excel_salida)
+
+# -------------------------------
+# 3. Exportar a PDF (requiere MS Excel instalado en Windows)
+# -------------------------------
+excel = win32.Dispatch("Excel.Application")
+excel.Visible = False
+
+wb = excel.Workbooks.Open(os.path.abspath(excel_salida))
+wb.ExportAsFixedFormat(0, os.path.abspath(pdf_salida))  # 0 = PDF
+wb.Close()
+excel.Quit()
+
+print("✅ Proceso completado. PDF generado:", pdf_salida)
+
+
+
+
+
+
+
+....................
 Cómo integrarlo en tu código existente
 from pypdf import PdfReader, PdfWriter
 
