@@ -21,19 +21,44 @@ wb_destino = openpyxl.load_workbook(excel_destino)
 ws_destino = wb_destino[hoja_destino]
 
 # -------------------------------
-# Copiar 13 columnas
+# Definir mapeo de columnas
+# clave = columna origen, valor = columna destino
+# (ejemplo: col 1 = A origen -> col 2 = B destino)
 # -------------------------------
-fila_destino = 9  # primera fila de pegado en el template
+mapeo_columnas = {
+    1: 2,   # A -> B
+    2: 3,   # B -> C
+    3: 4,   # C -> D
+    6: 5,   # F -> E
+    8: 6,   # H -> F
+    10: 7,  # J -> G
+    11: 8,  # K -> H
+    12: 9,  # L -> I
+    13: 10, # M -> J
+    14: 11, # N -> K
+    15: 12, # O -> L
+    16: 13, # P -> M
+    17: 14  # Q -> N
+}
 
-for fila in range(2, ws_origen.max_row + 1):  # empezamos en 2 para saltar encabezados en el origen
-    for col in range(1, 14):  # columnas 1 a 13 (A → M)
-        valor = ws_origen.cell(row=fila, column=col).value
-        ws_destino.cell(row=fila_destino, column=col).value = valor
+# -------------------------------
+# Copiar datos con mapeo
+# -------------------------------
+fila_destino = 9  # primera fila donde pegar en el template
+
+for fila in range(2, ws_origen.max_row + 1):  # desde fila 2 del origen
+    for col_origen, col_destino in mapeo_columnas.items():
+        valor = ws_origen.cell(row=fila, column=col_origen).value
+        ws_destino.cell(row=fila_destino, column=col_destino).value = valor
     fila_destino += 1
 
 # -------------------------------
-# Guardar el archivo de salida
+# Guardar archivo
 # -------------------------------
 wb_destino.save(excel_salida)
 
 print("✅ Datos copiados en", excel_salida)
+
+
+
+
