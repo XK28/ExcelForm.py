@@ -1,3 +1,68 @@
+::::::;::::::::::::::::::::::::::::
+import openpyxl
+import os
+import win32com.client as win32  # Solo en Windows
+
+# -------------------------------
+# Configuración
+# -------------------------------
+excel_origen = "datos.xlsx"
+hoja_origen = "HojaDatos"
+
+excel_template = "template.xlsx"
+hoja_destino = "Formato"
+
+excel_salida = "rellenado.xlsx"
+pdf_salida = "resultado.pdf"
+
+# -------------------------------
+# Cargar archivos
+# -------------------------------
+wb_origen = openpyxl.load_workbook(excel_origen, data_only=True)
+ws_origen = wb_origen[hoja_origen]
+
+wb_template = openpyxl.load_workbook(excel_template)
+ws_template = wb_template[hoja_destino]
+
+# -------------------------------
+# Pasar datos sin perder formato
+# -------------------------------
+# ⚠️ Aquí solo reemplazamos el "valor", el formato queda intacto
+fila_destino = 2  # por ejemplo, desde fila 2 en el template
+for fila in range(2, ws_origen.max_row + 1):
+    valor = ws_origen[f"A{fila}"].value
+    if valor is not None:
+        # IMPORTANTE: asignar valor directo, así no se rompe el formato
+        ws_template.cell(row=fila_destino, column=2).value = valor
+    fila_destino += 1
+
+# Guardar con datos insertados (manteniendo estilos)
+wb_template.save(excel_salida)
+
+# -------------------------------
+# Exportar a PDF con Excel (mantiene formato)
+# -------------------------------
+excel = win32.Dispatch("Excel.Application")
+excel.Visible = False
+
+wb = excel.Workbooks.Open(os.path.abspath(excel_salida))
+wb.Worksheets(hoja_destino).Select()
+wb.ActiveSheet.ExportAsFixedFormat(0, os.path.abspath(pdf_salida))
+wb.Close()
+excel.Quit()
+
+print("✅ Proceso completado. PDF generado:", pdf_salida)
+
+
+
+
+
+
+
+
+
+
+
 ,...............................
 import openpyxl
 import os
