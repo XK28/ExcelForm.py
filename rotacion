@@ -1,57 +1,42 @@
-::::::;::::::::::::::::::::::::::::
 import openpyxl
-import os
-import win32com.client as win32  # Solo en Windows
 
 # -------------------------------
-# Configuración
+# Archivos y hojas
 # -------------------------------
 excel_origen = "datos.xlsx"
 hoja_origen = "HojaDatos"
 
-excel_template = "template.xlsx"
+excel_destino = "template.xlsx"
 hoja_destino = "Formato"
 
 excel_salida = "rellenado.xlsx"
-pdf_salida = "resultado.pdf"
 
 # -------------------------------
-# Cargar archivos
+# Abrir libros y hojas
 # -------------------------------
 wb_origen = openpyxl.load_workbook(excel_origen, data_only=True)
 ws_origen = wb_origen[hoja_origen]
 
-wb_template = openpyxl.load_workbook(excel_template)
-ws_template = wb_template[hoja_destino]
+wb_destino = openpyxl.load_workbook(excel_destino)
+ws_destino = wb_destino[hoja_destino]
 
 # -------------------------------
-# Pasar datos sin perder formato
+# Copiar datos de columnas
 # -------------------------------
-# ⚠️ Aquí solo reemplazamos el "valor", el formato queda intacto
-fila_destino = 2  # por ejemplo, desde fila 2 en el template
-for fila in range(2, ws_origen.max_row + 1):
-    valor = ws_origen[f"A{fila}"].value
-    if valor is not None:
-        # IMPORTANTE: asignar valor directo, así no se rompe el formato
-        ws_template.cell(row=fila_destino, column=2).value = valor
+fila_destino = 9   # primera fila donde pegar
+for fila in range(2, ws_origen.max_row + 1):  # desde fila 2 (para saltar encabezados en origen)
+    # ejemplo: copiar 3 columnas (A, B, C) del origen → columnas B, C, D en el destino
+    ws_destino.cell(row=fila_destino, column=2).value = ws_origen.cell(row=fila, column=1).value  # Col A -> Col B
+    ws_destino.cell(row=fila_destino, column=3).value = ws_origen.cell(row=fila, column=2).value  # Col B -> Col C
+    ws_destino.cell(row=fila_destino, column=4).value = ws_origen.cell(row=fila, column=3).value  # Col C -> Col D
     fila_destino += 1
 
-# Guardar con datos insertados (manteniendo estilos)
-wb_template.save(excel_salida)
-
 # -------------------------------
-# Exportar a PDF con Excel (mantiene formato)
+# Guardar el archivo de salida
 # -------------------------------
-excel = win32.Dispatch("Excel.Application")
-excel.Visible = False
+wb_destino.save(excel_salida)
 
-wb = excel.Workbooks.Open(os.path.abspath(excel_salida))
-wb.Worksheets(hoja_destino).Select()
-wb.ActiveSheet.ExportAsFixedFormat(0, os.path.abspath(pdf_salida))
-wb.Close()
-excel.Quit()
-
-print("✅ Proceso completado. PDF generado:", pdf_salida)
+print("✅ Datos copiados en", excel_salida)
 
 
 
@@ -88,28 +73,6 @@ ws_template = wb_template.active
 # 2. Pasar datos del origen al template
 #    (ejemplo: copiar nombres de la columna A al template)
 # -------------------------------
-fila_destino = 2  # Suponiendo que en el template la fila 1 son encabezados
-for fila in range(2, ws_origen.max_row + 1):
-    valor = ws_origen[f"A{fila}"].value
-    ws_template[f"A{fila_destino}"] = valor
-    fila_destino += 1
-
-# Guardar el template con los datos
-wb_template.save(excel_salida)
-
-# -------------------------------
-# 3. Exportar a PDF (requiere MS Excel instalado en Windows)
-# -------------------------------
-excel = win32.Dispatch("Excel.Application")
-excel.Visible = False
-
-wb = excel.Workbooks.Open(os.path.abspath(excel_salida))
-wb.ExportAsFixedFormat(0, os.path.abspath(pdf_salida))  # 0 = PDF
-wb.Close()
-excel.Quit()
-
-print("✅ Proceso completado. PDF generado:", pdf_salida)
-
 
 
 
