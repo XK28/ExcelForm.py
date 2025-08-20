@@ -1,0 +1,39 @@
+import openpyxl
+
+# -------------------------------
+# Archivos y hojas
+# -------------------------------
+excel_origen = "datos.xlsx"
+hoja_origen = "HojaDatos"
+
+excel_destino = "template.xlsx"
+hoja_destino = "Formato"
+
+excel_salida = "rellenado.xlsx"
+
+# -------------------------------
+# Abrir libros y hojas
+# -------------------------------
+wb_origen = openpyxl.load_workbook(excel_origen, data_only=True)
+ws_origen = wb_origen[hoja_origen]
+
+wb_destino = openpyxl.load_workbook(excel_destino)
+ws_destino = wb_destino[hoja_destino]
+
+# -------------------------------
+# Copiar 13 columnas
+# -------------------------------
+fila_destino = 9  # primera fila de pegado en el template
+
+for fila in range(2, ws_origen.max_row + 1):  # empezamos en 2 para saltar encabezados en el origen
+    for col in range(1, 14):  # columnas 1 a 13 (A → M)
+        valor = ws_origen.cell(row=fila, column=col).value
+        ws_destino.cell(row=fila_destino, column=col).value = valor
+    fila_destino += 1
+
+# -------------------------------
+# Guardar el archivo de salida
+# -------------------------------
+wb_destino.save(excel_salida)
+
+print("✅ Datos copiados en", excel_salida)
