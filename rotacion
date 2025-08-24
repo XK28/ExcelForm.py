@@ -1,41 +1,75 @@
 import openpyxl
+import win32com.client
+import pandas as pd
 
 # -------------------------------
 # Archivos y hojas
 # -------------------------------
-excel_origen = "datos.xlsx"
-hoja_origen = "HojaDatos"
+excel_origen = r'C:\Kroner\EXCEL\EDOIM Y APERT.xlsm'
+hoja_origen = 'EDOIM'
 
-excel_destino = "template.xlsx"
-hoja_destino = "Formato"
+excel_destino = r'C:\Kroner\EXCEL\Plantilla.xlsm'
+hoja_destino = 'Plantilla'
 
-excel_salida = "rellenado.xlsx"
+excel_salida = "reporte_tabla.xlsx"
 
 # -------------------------------
 # Abrir libros y hojas
 # -------------------------------
-wb_origen = openpyxl.load_workbook(excel_origen, data_only=True)
+wb_origen = openpyxl.load_workbook(excel_origen,  data_only=True)
 ws_origen = wb_origen[hoja_origen]
 
 wb_destino = openpyxl.load_workbook(excel_destino)
 ws_destino = wb_destino[hoja_destino]
 
+
+nombre_excel = input("Ingrese el nombre para guardar el Documento: ").strip()
+if not nombre_excel:
+    nombre_excel = "reporte_tabla"
+if not nombre_excel.lower().endswith('.xlsx'):
+    nombre_excel += '.xlsx'
+
+excel_salida = nombre_excel
+
+
 # -------------------------------
 # Copiar datos de columnas
 # -------------------------------
-fila_destino = 9   # primera fila donde pegar
-for fila in range(2, ws_origen.max_row + 1):  # desde fila 2 (para saltar encabezados en origen)
-    # ejemplo: copiar 3 columnas (A, B, C) del origen → columnas B, C, D en el destino
-    ws_destino.cell(row=fila_destino, column=2).value = ws_origen.cell(row=fila, column=1).value  # Col A -> Col B
-    ws_destino.cell(row=fila_destino, column=3).value = ws_origen.cell(row=fila, column=2).value  # Col B -> Col C
-    ws_destino.cell(row=fila_destino, column=4).value = ws_origen.cell(row=fila, column=3).value  # Col C -> Col D
+mapeo_columnas = {
+    5: 1,   # A -> B
+    6: 2,   # B -> C
+    7: 3,   # C -> D
+    8: 4,   # F -> E
+    9: 5,   # H -> F
+    10: 6,  # J -> G
+    11: 7,  # K -> H
+    12: 8,  # L -> I
+    13: 9, # M -> J
+    14: 10, # N -> K
+    15: 11, # O -> L
+    16: 12, # P -> M
+    17: 13, # Q -> N
+    
+}
+
+# -------------------------------
+# Copiar datos con mapeo
+# -------------------------------
+fila_destino = 9  # primera fila donde pegar en el template
+
+for fila in range(3, ws_origen.max_row + 1):  # desde fila 2 del origen
+    for col_origen, col_destino in mapeo_columnas.items():
+        valor = ws_origen.cell(row=fila, column=col_origen).value
+        ws_destino.cell(row=fila_destino, column=col_destino).value = valor
     fila_destino += 1
 
 # -------------------------------
-# Guardar el archivo de salida
+# Guardar archivo
 # -------------------------------
 wb_destino.save(excel_salida)
 
+
+print(f"Documento  generado con tabla: {excel_salida}")
 print("✅ Datos copiados en", excel_salida)
 
 
@@ -48,71 +82,3 @@ print("✅ Datos copiados en", excel_salida)
 
 
 
-,...............................
-import openpyxl
-import os
-import win32com.client as win32  # Solo en Windows
-
-# -------------------------------
-# 1. Cargar archivos
-# -------------------------------
-excel_origen = "datos.xlsx"
-excel_template = "template.xlsx"
-excel_salida = "rellenado.xlsx"
-pdf_salida = "resultado.pdf"
-
-# Abrir el archivo origen
-wb_origen = openpyxl.load_workbook(excel_origen)
-ws_origen = wb_origen.active
-
-# Abrir el archivo template
-wb_template = openpyxl.load_workbook(excel_template)
-ws_template = wb_template.active
-
-# -------------------------------
-# 2. Pasar datos del origen al template
-#    (ejemplo: copiar nombres de la columna A al template)
-# -------------------------------
-
-
-
-
-
-
-....................
-Cómo integrarlo en tu código existente
-from pypdf import PdfReader, PdfWriter
-
-reader = PdfReader("mi_archivo.pdf")
-writer = PdfWriter()
-
-# ... otros pasos existentes (añadir páginas, modificar contenido, etc.) ...
-
-writer.write("output.pdf")
-
-Simplemente inserta el bucle de rotación justo antes de escribir:
-
-for page in reader.pages:
-    page.rotate(90)
-    writer.add_page(page)
-
-with open("output_horizontal.pdf", "wb") as f:
-    writer.write(f)
-
---------------------------------------------------------------------
-EJM Integrado 
-
-from pypdf import PdfReader, PdfWriter
-
-reader = PdfReader("entrada.pdf")
-writer = PdfWriter()
-
-# Aquí podrías modificar páginas, texto, combinarlas, etc.
-
-# Ahora rotamos a apaisado
-for page in reader.pages:
-    page.rotate(90)
-    writer.add_page(page)
-
-with open("salida_horizontal.pdf", "wb") as f:
-    writer.write(f)
