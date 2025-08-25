@@ -17,3 +17,35 @@ df.to_excel(excel_path, index=False)
 from xlsx2pdf import xlsx2pdf
 pdf_path = "resultados.pdf"
 xlsx2pdf(excel_path, pdf_path)
+----------------------------------------------------------------
+idea 2 con sqlite
+import sqlite3
+import pandas as pd
+
+# 1. Conexión y query
+conn = sqlite3.connect("mi_base_de_datos.db")
+query = "SELECT * FROM mi_tabla"
+df = pd.read_sql_query(query, conn)
+conn.close()
+
+# 2. Exportar a Excel
+ruta_excel = "resultados.xlsx"
+df.to_excel(ruta_excel, index=False)
+
+# 3A. Convertir a PDF (opción con Excel)
+from win32com import client
+excel = client.Dispatch("Excel.Application")
+libro = excel.Workbooks.Open(ruta_excel)
+libro.ExportAsFixedFormat(0, "resultados.pdf")
+libro.Close()
+excel.Quit()
+
+# — o —
+
+# 3B. Convertir a PDF usando Spire.XLS
+# from spire.xls import Workbook
+# from spire.xls.common import FileFormat
+# wb = Workbook()
+# wb.LoadFromFile(ruta_excel)
+# wb.SaveToFile("resultados.pdf", FileFormat.PDF)
+# wb.Dispose()
