@@ -1,0 +1,42 @@
+
+import sqlite3
+import pandas as pd
+import openpyxl
+
+# -------------------------------
+# Configuración de la base de datos
+# -------------------------------
+DB_PATH = r'C:\ruta\a\tu_base_de_datos.db'
+QUERY = "SELECT * FROM tu_tabla"
+
+# -------------------------------
+# Leer datos desde la base de datos
+# -------------------------------
+conn = sqlite3.connect(DB_PATH)
+df = pd.read_sql_query(QUERY, conn)
+conn.close()
+
+# -------------------------------
+# Abrir plantilla destino
+# -------------------------------
+excel_destino = r'C:\Kroner\EXCEL\Plantilla.xlsm'
+hoja_destino = 'Plantilla'
+wb_destino = openpyxl.load_workbook(excel_destino)
+ws_destino = wb_destino[hoja_destino]
+
+# -------------------------------
+# Copiar datos del DataFrame a la plantilla
+# -------------------------------
+fila_destino = 9  # primera fila donde pegar en el template
+
+for idx, row in df.iterrows():
+    for col_destino, valor in enumerate(row, start=1):
+        ws_destino.cell(row=fila_destino, column=col_destino).value = valor
+    fila_destino += 1
+
+# -------------------------------
+# Guardar archivo
+# -------------------------------
+wb_destino.save("reporte_tabla.xlsx")
+print("✅ Datos copiados desde la base de datos a reporte_tabla.xlsx")
+# ...existing code...
