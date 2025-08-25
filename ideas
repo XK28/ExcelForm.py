@@ -1,0 +1,19 @@
+import pandas as pd
+import requests  # si usas API REST
+# o
+# import sqlalchemy
+
+# 1. Obtener datos
+url_api = "https://ejemplo.com/api/query"
+response = requests.post(url_api, json={"query": "SELECT * FROM tu_tabla"})
+data = response.json()
+df = pd.DataFrame(data)  # Suponiendo que devuelve una lista de dicts
+
+# 2. Guardar Excel
+excel_path = "resultados.xlsx"
+df.to_excel(excel_path, index=False)
+
+# 3. Convertir a PDF
+from xlsx2pdf import xlsx2pdf
+pdf_path = "resultados.pdf"
+xlsx2pdf(excel_path, pdf_path)
