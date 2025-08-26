@@ -2,7 +2,7 @@
 import win32com.client
 import pandas as pd
 import lz
-from sqlalchemy import create_engine, text
+
 
 
 
@@ -20,6 +20,46 @@ LIMIT 5;
 SOLICITUD = pd.read_sql(query, lz.cn)
 
 print(SOLICITUD)
+---------------------------------------------------------------------------------------------
+
+Query para tomar datos y pasarlos a Excel:
+
+import pandas as pd
+from sqlalchemy import create_engine
+from win32com import client
+import os
+
+# Configura tu conexión
+engine = create_engine('TU_CADENA_DE_CONEXIÓN')
+
+# Ejecuta la consulta SQL
+query = """
+SELECT * FROM tu_tabla
+LIMIT 5;
+"""
+df = pd.read_sql(query, engine)
+
+# Revisa los datos
+print(df)
+
+# Define nombres de archivo
+excel_filename = "resultado.xlsx"
+pdf_filename = "resultado.pdf"
+
+# 1. Guardar en Excel
+df.to_excel(excel_filename, index=False)
+
+# 2. Convertir Excel a PDF
+excel = client.Dispatch("Excel.Application")
+excel.Visible = False
+
+wb = excel.Workbooks.Open(os.path.abspath(excel_filename))
+ws = wb.Worksheets[0]  # o por nombre: wb.Worksheets['Sheet1']
+ws.ExportAsFixedFormat(0, os.path.abspath(pdf_filename))
+
+wb.Close()
+excel.Quit()
+
 
 
       
