@@ -1,3 +1,59 @@
+Tomar datos de un query, pasarlos a excel:
+import pandas as pd
+from sqlalchemy import create_engine
+from openpyxl import load_workbook
+from win32com import client
+import os
+
+# Conexión a base de datos
+engine = create_engine('tu_cadena_de_conexion')
+
+# Consulta para obtener números de préstamo
+query_prestamos = """
+SELECT createdate AS FechaCreado,
+       regexp_extract(r4, ':\\s*(\\d+)', 1) AS numero_prestamo
+FROM s_bani_productos.saleslogix_sysdba_ticket
+WHERE issue = 'HISTORICO DE PAGO' AND createdate > '2025-01-01'
+LIMIT 5;
+"""
+df_prestamos = pd.read_sql(query_prestamos, engine)
+
+for numero in df_prestamos['numero_prestamo']:
+    # Obtener detalles del préstamo
+    query_detalles = f"SELECT campo1, campo2, campo3 FROM otra_tabla WHERE numero_prestamo = '{numero}';"
+    df_det = pd.read_sql(query_detalles, engine)
+
+    excel_path = f"{numero}.xlsx"
+    pdf_path = f"{numero}.pdf"
+
+    # Escribir columnas seleccionadas en Excel
+    with pd.ExcelWriter(excel_path, engine='openpyxl', mode='w') as writer:
+        df_det.to_excel(writer, sheet_name='Detalles', index=False,
+                        columns=['campo1', 'campo2', 'campo3'])
+
+    # Opcional: ajustar celdas directamente con openpyxl
+    wb = load_workbook(excel_path)
+    ws = wb['Detalles']
+    # Ejemplo: ws['D1'] = 'Comentario adicional'
+    wb.save(excel_path)
+
+    # Convertir a PDF
+    excel = client.Dispatch("Excel.Application")
+    excel.Visible = False
+    excel.DisplayAlerts = False
+    wb_com = excel.Workbooks.Open(os.path.abspath(excel_path))
+    ws_com = wb_com.Worksheets('Detalles')
+    ws_com.ExportAsFixedFormat(0, os.path.abspath(pdf_path))
+    wb_com.Close()
+    excel.Quit()
+
+
+
+
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------
 import pandas as pd
 from sqlalchemy import create_engine
 from win32com import client
