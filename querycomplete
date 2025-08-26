@@ -1,0 +1,44 @@
+import pandas as pd
+from sqlalchemy import create_engine
+from win32com import client
+import os
+
+# Configura tu conexión a la base de datos
+engine = create_engine('tu_conexion_a_la_base_de_datos')
+
+# Consulta para obtener los números de préstamo
+query_prestamos = """
+SELECT createdate as FechaCreado,
+       regexp_extract(r4, ':\\s*(\\d+)', 1) AS numero_prestamo
+FROM s_bani_productos.saleslogix_sysdba_ticket
+WHERE issue = 'HISTORICO DE PAGO' AND createdate > '2025-01-01'
+LIMIT 5;
+"""
+
+# Ejecuta la consulta y obtiene los resultados
+df_prestamos = pd.read_sql(query_prestamos, engine)
+
+# Itera sobre cada número de préstamo
+for numero in df_prestamos['numero_prestamo']:
+    # Consulta para obtener los detalles del préstamo
+    query_detalles = f"""
+    SELECT * FROM otra_tabla WHERE numero_prestamo = '{numero}';
+    """
+    df_detalles = pd.read_sql(query_detalles, engine)
+    
+    # Define el nombre del archivo
+    nombre_archivo = f"{numero}"
+    ruta_excel = f"{nombre_archivo}.xlsx"
+    ruta_pdf = f"{nombre_archivo}.pdf"
+    
+    # Exporta a Excel
+    df_detalles.to_excel(ruta_excel, index=False)
+    
+    # Convierte a PDF
+    excel = client.Dispatch("Excel.Application")
+    excel.Visible = False
+    wb = excel.Workbooks.Open(os.path.abspath(ruta_excel))
+    ws = wb.Worksheets[0]
+    ws.ExportAsFixedFormat(0, os.path.abspath(ruta_pdf))
+    wb.Close()
+    excel.Quit()
