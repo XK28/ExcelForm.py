@@ -1,0 +1,99 @@
+#codigo funcional completo con con 1 tabla
+import pandas as pd
+import os
+import datetime
+import lz
+
+# Solicitar número de préstamo y año de inicio
+numero_prestamo = input("Ingrese el número de préstamo que desea consultar: ")
+anio_inicio = input("Ingrese el año desde el cual desea consultar (por ejemplo, 2022): ")
+
+# Obtener el saldo actual (monto aprobado)
+query_saldo = f"""
+SELECT op_monto_aprobado_ori
+FROM s_bani_productos.cobis_cob_cartera_ca_operacion
+WHERE op_banco = '{numero_prestamo}'
+"""
+df_saldo = pd.read_sql(query_saldo, lz.cn)
+saldo_actual = df_saldo['op_monto_aprobado_ori'].iloc[0] if not df_saldo.empty else 0
+
+# Consulta principal consolidada
+query_principal = f"""
+SELECT
+    ingestion_year * 10000 + ingestion_month * 100 + ingestion_day AS fecha_carga,
+    ar_operacion,
+    ar_secuencial,
+    SUM(COALESCE(CASE WHEN ar_dividendo = -1 THEN ar_monto ELSE 0 END)) AS monto_pago,
+    SUM(COALESCE(CASE WHEN ar_concepto = 'CAP' THEN ar_monto_mn ELSE 0 END)) AS capital,
+    SUM(COALESCE(CASE WHEN ar_concepto ILIKE 'INT%' OR ar_concepto ILIKE 'REAGCAPOTR%' THEN ar_monto_mn ELSE 0 END)) AS interes,
+    SUM(COALESCE(CASE WHEN ar_concepto ILIKE 'IMO%' THEN ar_monto_mn ELSE 0 END)) AS imo,
+    SUM(COALESCE(CASE WHEN ar_concepto ILIKE 'FECI%' OR ar_concepto ILIKE 'REAGFECI%' THEN ar_monto_mn ELSE 0 END)) AS feci,
+    SUM(COALESCE(CASE WHEN ar_concepto ILIKE 'SEG%' THEN ar_monto_mn ELSE 0 END)) AS seguros,
+    SUM(COALESCE(CASE WHEN ar_concepto ILIKE 'COM%' THEN ar_monto_mn ELSE 0 END)) AS comisiones,
+    SUM(COALESCE(CASE WHEN ar_concepto ILIKE 'ITBM%' THEN ar_monto_mn ELSE 0 END)) AS itbms,
+    SUM(COALESCE(CASE
+        WHEN ar_dividendo = -1 THEN 0
+        WHEN TRIM(ar_concepto) ILIKE 'COM%' THEN 0
+        WHEN TRIM(ar_concepto) ILIKE 'CAP%' THEN 0
+        WHEN TRIM(ar_concepto) ILIKE 'INT%' THEN 0
+        WHEN TRIM(ar_concepto) ILIKE '%FECI%' THEN 0
+        WHEN TRIM(ar_concepto) ILIKE 'SEG%' THEN 0
+        WHEN TRIM(ar_concepto) ILIKE 'ITBM%' THEN 0
+        WHEN TRIM(ar_concepto) ILIKE 'REAGCAPOTR%' THEN 0
+        WHEN TRIM(ar_concepto) ILIKE 'REAGFECI%' THEN 0
+        ELSE ar_monto_mn END)) AS otros
+FROM s_bani_productos.cobis_cob_cartera_ca_abono_rubro 
+WHERE 
+    year = year(now())
+    AND ingestion_year * 10000 + ingestion_month * 100 + ingestion_day = (
+        SELECT MAX(ingestion_year * 10000 + ingestion_month * 100 + ingestion_day)
+        FROM s_bani_productos.cobis_cob_cartera_ca_abono_rubro
+        WHERE year = year(now())
+    )
+    AND ar_operacion IN (
+        SELECT op_operacion
+        FROM s_bani_productos.cobis_cob_cartera_ca_operacion
+        WHERE op_banco = '{numero_prestamo}'
+    )
+GROUP BY 1, 2, 3
+"""
+
+# Ejecutar consulta principal
+df_total = pd.read_sql(query_principal, lz.cn)
+df_total['fecha_carga'] = pd.to_datetime(df_total['fecha_carga'], format='%Y%m%d', errors='coerce')
+
+# Formatear columnas adicionales
+df_total['rs_credito'] = numero_prestamo
+df_total['rs_nummov_im'] = df_total['ar_secuencial']
+df_total['rs_fecmov_im_d'] = df_total['fecha_carga'].dt.strftime('%d-%m-%Y')
+
+# Ordenar por número de movimiento
+df_total.sort_values(by='rs_nummov_im', inplace=True)
+
+# Calcular Saldo Actual correctamente
+saldos = []
+for i, row in df_total.iterrows():
+    if i == df_total.index[0]:
+        saldos.append(saldo_actual - row['capital'])
+    else:
+        saldos.append(saldos[-1] - row['capital'])
+df_total['Saldo Actual'] = saldos
+
+# Reordenar columnas (sin fecha_carga)
+columnas_finales = [
+    'rs_credito', 'rs_nummov_im', 'rs_fecmov_im_d',
+    'capital', 'interes', 'imo', 'feci', 'seguros', 'comisiones', 'itbms', 'otros', 'monto_pago', 'Saldo Actual'
+]
+df_final = df_total[columnas_finales]
+
+# Crear carpeta con número de día actual
+dia_actual = datetime.datetime.now().day
+carpeta_salida = f"Reporte_{dia_actual:02d}"
+os.makedirs(carpeta_salida, exist_ok=True)
+
+# Exportar a Excel
+excel_output_path = os.path.join(carpeta_salida, f"{numero_prestamo}_resumen.xlsx")
+df_final.to_excel(excel_output_path, index=False)
+
+print(f"✅ Reporte exportado correctamente en: {carpeta_salida}")
+print(f"📄 Excel: {excel_output_path}")
